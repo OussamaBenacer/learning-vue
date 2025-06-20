@@ -2,17 +2,28 @@
 import { RouterView, useRouter } from "vue-router";
 import { ref } from "vue";
 import { onMounted } from "vue";
-import { refreshApi } from "@/services/auth";
+import { getProfile } from "@/services/auth";
+import { logoutApi } from "@/services/auth";
 
 const router = useRouter();
+const userProfile = ref(null);
 const isLoading = ref(true);
-const hasPermission = ref(false);
 
-// redirected to the login view if tokens are not valid
+const logout = async () => {
+  // create full logic (consider the endpoint exist)
+  try {
+    await logoutApi();
+    router.push("/");
+  } catch (err) {
+    console.err("failed logout: ", err.message);
+  }
+};
+
+// redirected if we can't get user's profile (invalid access and refresh token)
 onMounted(async () => {
   try {
-    await refreshApi();
-    hasPermission.value = true;
+    const { data } = await getProfile();
+    userProfile.value = data;
   } catch (err) {
     router.replace("/");
     console.error("refresh failed: ", err.message);
@@ -25,20 +36,32 @@ onMounted(async () => {
 <template>
   <v-card :loading="isLoading">
     <v-app>
-      <v-layout v-if="hasPermission">
-        <v-navigation-drawer app permanent width="210">
-          <div class="flex flex-col h-full p-4">
-            <h1 class="text-xl font-semibold mb-6 border-b-2 py-4 border-b-gray-300 text-center">
-              Admin Panel
-            </h1>
-
-            <v-list nav>
-              <v-list-item title="Profile" link to="/admin-panel/profile"></v-list-item>
-              <v-list-item title="Users" link to="/admin-panel/users"></v-list-item>
-              <v-list-item title="Products" link to="/admin-panel/products"></v-list-item>
-              <v-list-item title="Categories" link to="/admin-panel/categories"></v-list-item>
-            </v-list>
+      <v-layout v-if="!!userProfile">
+        <v-app-bar title="Admin Panel">
+          <div class="px-4 py-10">
+            <div class="flex gap-3 items-center">
+              <v-img
+                :lazy-src="userProfile?.avatar"
+                :src="userProfile?.avatar"
+                class="rounded-full aspect-square grow-0 size-12 mx-auto"
+                cover
+              ></v-img>
+              <div>
+                <p class="font-semibold">
+                  {{ userProfile?.name }}
+                </p>
+                <p class="text-xs text-slate-400">{{ userProfile?.email }}</p>
+              </div>
+              <v-btn variant="text" color="red" @click="logout"> logout </v-btn>
+            </div>
           </div>
+        </v-app-bar>
+        <v-navigation-drawer width="250">
+          <v-list nav class="px-4">
+            <v-list-item title="Users" link to="/admin-panel/users"></v-list-item>
+            <v-list-item title="Products" link to="/admin-panel/products"></v-list-item>
+            <v-list-item title="Categories" link to="/admin-panel/categories"></v-list-item>
+          </v-list>
         </v-navigation-drawer>
 
         <v-main>
