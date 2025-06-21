@@ -59,13 +59,13 @@ onMounted(async () => {
         <v-navigation-drawer width="250">
           <v-list nav class="px-4">
             <v-list-item title="Users" link to="/admin-panel/users"></v-list-item>
-            <v-list-item title="Products" link to="/admin-panel/products"></v-list-item>
             <v-list-item title="Categories" link to="/admin-panel/categories"></v-list-item>
+            <v-list-item title="Products" link to="/admin-panel/products"></v-list-item>
           </v-list>
         </v-navigation-drawer>
 
         <v-main>
-          <div class="h-full px-10">
+          <div class="h-full">
             <RouterView />
           </div>
         </v-main>

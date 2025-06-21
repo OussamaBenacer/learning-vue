@@ -144,14 +144,14 @@ onMounted(loadUsers);
           aspect-ratio="1"
           :lazy-src="item.avatar"
           :src="item.avatar"
-          class="rounded-full size-12 block mx-auto"
+          class="rounded-md size-12 block mx-auto"
           cover
         ></v-img>
       </template>
 
       <template #item.actions="{ item }">
-        <v-btn @click="openDialog(item)"> edit </v-btn>
-        <v-btn color="error" @click="removeUser(item.id)"> delete </v-btn>
+        <v-btn size="small" @click="openDialog(item)"> edit </v-btn>
+        <v-btn size="small" color="error" @click="removeUser(item.id)"> delete </v-btn>
       </template>
     </v-data-table>
   </v-card>
