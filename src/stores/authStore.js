@@ -14,7 +14,11 @@ export const useAuthStore = defineStore(
       refreshToken.value = refreshT;
     }
 
-    return { accessToken, refreshToken, tokensAvailable, setTokens };
+    function logout() {
+      setTokens("", "");
+    }
+
+    return { accessToken, refreshToken, tokensAvailable, setTokens, logout };
   },
   { persist: true },
 );
