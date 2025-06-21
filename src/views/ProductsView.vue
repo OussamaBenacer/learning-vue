@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, onMounted } from "vue";
-import { getProducts, addProduct, updateProduct, deleteProduct } from "../services/products";
+import { getProducts, addProduct, updateProduct, deleteProduct, getProductsFilter } from "../services/products";
 import { getCategories } from "@/services/categories";
 
 // State
@@ -8,6 +8,43 @@ const products = ref([]);
 const categories = ref([]);
 const loading = ref(false);
 
+// Filters (reactive because it’s UI inputs — better!)
+const filters = reactive({
+  title: "",
+  price_min: null,
+  price_max: null,
+  categoryId: "",
+});
+
+const applyFilters = async () => {
+  loading.value = true;
+  try {
+    const filterParams = {
+      title: filters.title,
+      price_min: filters.price_min,
+      price_max: filters.price_max,
+      categoryId: filters.categoryId,
+    };
+    const { data } = await getProductsFilter(filterParams);
+    products.value = data;
+  } catch (error) {
+    console.error("Failed to apply filters:", error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const resetFilters = () => {
+  Object.assign(filters, {
+    title: "",
+    price_min: null,
+    price_max: null,
+    categoryId: "",
+  });
+  loadProducts();
+};
+
+// Dialog & Form
 const dialog = reactive({
   isOpen: false,
   isSending: false,
@@ -16,13 +53,40 @@ const dialog = reactive({
   errors: [],
 });
 
-const form = ref({
+const initialForm = {
   title: "",
   price: 0,
   description: "",
   categoryId: "",
   images: "",
-});
+};
+
+const form = ref(initialForm);
+
+const resetForm = () => {
+  form.value = { ...initialForm };
+  dialog.errors = [];
+};
+
+const openDialog = (product = null) => {
+  dialog.editMode = !!product;
+  dialog.selectedProduct = product ? { ...product } : null;
+
+  form.value = {
+    title: product?.title ?? "",
+    price: product?.price ?? 0,
+    description: product?.description ?? "",
+    categoryId: product?.category?.id ?? "",
+    images: product?.images?.join(" , ") ?? "",
+  };
+
+  dialog.isOpen = true;
+};
+
+const closeDialog = () => {
+  dialog.isOpen = false;
+  resetForm();
+};
 
 // Table headers
 const headers = [
@@ -49,37 +113,6 @@ const loadProducts = async () => {
   }
 };
 
-const resetForm = () => {
-  form.value = {
-    title: "",
-    price: 0,
-    description: "",
-    categoryId: "",
-    images: "",
-  };
-  dialog.errors = [];
-};
-
-const openDialog = (product = null) => {
-  dialog.editMode = !!product;
-  dialog.selectedProduct = product ? { ...product } : null;
-
-  form.value = {
-    title: product?.title ?? "",
-    price: product?.price ?? 0,
-    description: product?.description ?? "",
-    categoryId: product?.category?.id ?? "",
-    images: product?.images?.join(" , ") ?? "",
-  };
-
-  dialog.isOpen = true;
-};
-
-const closeDialog = () => {
-  dialog.isOpen = false;
-  resetForm();
-};
-
 const saveProduct = async () => {
   dialog.isSending = true;
   dialog.errors = [];
@@ -101,9 +134,8 @@ const saveProduct = async () => {
           if (newImages !== oldImages) {
             changedFields.images = finalProduct.images;
           }
-          continue; 
+          continue;
         }
-
 
         if (finalProduct[key] != dialog.selectedProduct[key]) {
           changedFields[key] = finalProduct[key];
@@ -144,6 +176,7 @@ const removeProduct = async (productId) => {
 onMounted(loadProducts);
 </script>
 
+
 <!-- eslint-disable vue/valid-v-slot -->
 <template>
   <v-card flat>
@@ -153,6 +186,23 @@ onMounted(loadProducts);
         <v-btn color="primary" @click="openDialog()">Add Product</v-btn>
       </div>
     </template>
+
+    <v-card flat class="mb-4 p-4">
+      <div class="flex flex-wrap items-center gap-4">
+        <v-text-field v-model="filters.title" label="Title"></v-text-field>
+        <v-text-field v-model="filters.price_min" label="Min Price" type="number"></v-text-field>
+        <v-text-field v-model="filters.price_max" label="Max Price" type="number"></v-text-field>
+        <v-select
+          v-model="filters.categoryId"
+          :items="categories"
+          item-title="name"
+          item-value="id"
+          label="Category"
+        ></v-select>
+        <v-btn color="secondary" size="small" @click="applyFilters">Apply Filters</v-btn>
+        <v-btn variant="plain" size="small" @click="resetFilters">Reset</v-btn>
+      </div>
+    </v-card>
 
     <v-data-table
       title="Product management"

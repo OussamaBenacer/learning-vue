@@ -12,7 +12,7 @@ onMounted(async () => {
   isLoading.value = true;
   try {
     await refreshApi();
-    router.replace("/admin-panel");
+    router.replace("/admin-panel/users");
   } catch (err) {
     console.error("refresh failed: ", err.message);
   } finally {
