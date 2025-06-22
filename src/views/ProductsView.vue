@@ -97,6 +97,7 @@ const initialForm = {
 };
 
 const form = ref(initialForm);
+const formRef = ref(null);
 
 const resetForm = () => {
   form.value = { ...initialForm };
@@ -134,6 +135,10 @@ const headers = [
 ];
 
 const saveProduct = async () => {
+  const { valid } = await formRef.value.validate();
+
+  if (!valid) return;
+
   dialog.isSending = true;
   dialog.errors = [];
   try {
@@ -244,6 +249,7 @@ const deleteProduct = async () => {
       </div>
     </v-card>
 
+    <!-- table data part  -->
     <v-data-table
       title="Product management"
       :headers="headers"
@@ -281,36 +287,64 @@ const deleteProduct = async () => {
 
   <!-- Add / Edit Dialog -->
   <v-dialog v-model="dialog.isOpen" max-width="600">
-    <v-card :loading="dialog.isSending" :disabled="dialog.isSending">
-      <v-card-title>
-        <span class="text-h6">{{ dialog.editMode ? "Edit Product" : "Add Product" }}</span>
-      </v-card-title>
+    <v-form ref="formRef">
+      <v-card :loading="dialog.isSending" :disabled="dialog.isSending">
+        <v-card-title>
+          <span class="text-h6">{{ dialog.editMode ? "Edit Product" : "Add Product" }}</span>
+        </v-card-title>
 
-      <v-card-text>
-        <!-- Errors -->
-        <ul v-if="dialog.errors?.length" class="text-red-500 text-sm mb-4">
-          <li v-for="error in dialog.errors" :key="error">{{ error }}</li>
-        </ul>
+        <v-card-text>
+          <v-text-field
+            v-model="form.title"
+            label="Title"
+            :rules="[(v) => !!v || 'Title is required']"
+            validate-on="submit"
+          />
 
-        <v-text-field v-model="form.title" label="Title"></v-text-field>
-        <v-text-field v-model="form.price" label="Price" type="number"></v-text-field>
-        <v-textarea v-model="form.description" label="Description"></v-textarea>
-        <v-select
-          v-model="form.categoryId"
-          :items="categories"
-          item-title="name"
-          item-value="id"
-          label="Category"
-        ></v-select>
+          <v-text-field
+            v-model="form.price"
+            label="Price"
+            type="number"
+            :rules="[(v) => v > 0 || 'Price must be greater than 0']"
+            validate-on="submit"
+          />
 
-        <v-textarea v-model="form.images" label="Images (comma separated URLs)"></v-textarea>
-      </v-card-text>
+          <v-textarea
+            v-model="form.description"
+            label="Description"
+            :rules="[(v) => !!v || 'Description is required']"
+            validate-on="submit"
+          />
 
-      <v-card-actions>
-        <v-btn variant="plain" @click="closeDialog">Cancel</v-btn>
-        <v-btn color="primary" @click="saveProduct">Save</v-btn>
-      </v-card-actions>
-    </v-card>
+          <v-select
+            v-model="form.categoryId"
+            :items="categories"
+            item-title="name"
+            item-value="id"
+            label="Category"
+            :rules="[(v) => !!v || 'Category is required']"
+            validate-on="submit"
+          />
+
+          <v-textarea
+            v-model="form.images"
+            label="Images (comma separated URLs)"
+            :rules="[(v) => !!v || 'At least one image URL is required']"
+            validate-on="submit"
+          />
+
+          <!-- Errors -->
+          <ul v-if="dialog.errors?.length" class="text-red-500 text-sm mb-4">
+            <li v-for="error in dialog.errors" :key="error">{{ error }}</li>
+          </ul>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-btn variant="plain" @click="closeDialog">Cancel</v-btn>
+          <v-btn color="primary" @click="saveProduct">Save</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-form>
   </v-dialog>
 
   <ConfirmDialog
