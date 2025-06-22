@@ -5,3 +5,5 @@ export const deleteUserApi = (id) => api.delete(`/users/${id}`);
 
 export const addUserApi = (newUser) => api.post("/users", newUser);
 export const updateUserApi = (id, updatedUser) => api.put(`/users/${id}`, updatedUser);
+
+export const isEmailAvailableApi = (email) => api.post("/users/is-available", { email });

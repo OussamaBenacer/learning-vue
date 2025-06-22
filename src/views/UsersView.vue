@@ -23,6 +23,13 @@ const form = ref({
   avatar: "",
 });
 
+const formFieldErrors = reactive({
+  name: "",
+  email: "",
+  password: "",
+  avatar: "",
+});
+
 const deleteDialog = reactive({
   isOpen: false,
   selectedUserId: null,
@@ -60,6 +67,11 @@ const resetForm = () => {
     avatar: "",
   };
   dialog.errors = [];
+
+  formFieldErrors.name = "";
+  formFieldErrors.email = "";
+  formFieldErrors.password = "";
+  formFieldErrors.avatar = "";
 };
 
 const openDialog = (user = null) => {
@@ -81,9 +93,72 @@ const closeDialog = () => {
   resetForm();
 };
 
+const validateForm = async () => {
+  let isValid = true;
+
+  formFieldErrors.name = "";
+  formFieldErrors.email = "";
+  formFieldErrors.password = "";
+  formFieldErrors.avatar = "";
+
+  // Name
+  if (!form.value.name || form.value.name.trim().length === 0) {
+    formFieldErrors.name = "Name should not be empty.";
+    isValid = false;
+  }
+
+  // Email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!form.value.email || form.value.email.trim().length === 0) {
+    formFieldErrors.email = "Email should not be empty.";
+    isValid = false;
+  } else if (!emailRegex.test(form.value.email.trim())) {
+    formFieldErrors.email = "Email must be a valid email address.";
+    isValid = false;
+  }
+
+  // Password
+  if (!form.value.password || form.value.password.trim().length === 0) {
+    formFieldErrors.password = "Password should not be empty.";
+    isValid = false;
+  } else if (form.value.password.length < 4) {
+    formFieldErrors.password = "Password must be longer than or equal to 4 characters.";
+    isValid = false;
+  } else {
+    const passwordRegex = /^[A-Za-z0-9]+$/;
+    if (!passwordRegex.test(form.value.password)) {
+      formFieldErrors.password = "Password must contain only letters and numbers.";
+      isValid = false;
+    }
+  }
+
+  // Avatar
+  if (!form.value.avatar || form.value.avatar.trim().length === 0) {
+    formFieldErrors.avatar = "Avatar should not be empty.";
+    isValid = false;
+  } else {
+    try {
+      new URL(form.value.avatar.trim());
+    } catch {
+      formFieldErrors.avatar = "Avatar must be a URL address.";
+      isValid = false;
+    }
+  }
+
+  return isValid;
+};
+
 const saveUser = async () => {
   dialog.isSending = true;
   dialog.errors = [];
+
+  const isValid = await validateForm();
+
+  if (!isValid) {
+    dialog.isSending = false;
+    return;
+  }
+
   try {
     if (dialog.editMode) {
       // diff
@@ -195,10 +270,34 @@ onMounted(loadUsers);
           <li v-for="error in dialog.errors" :key="error">{{ error }}</li>
         </ul>
 
-        <v-text-field v-model="form.name" label="Name"></v-text-field>
-        <v-text-field v-model="form.email" label="Email"></v-text-field>
-        <v-text-field v-model="form.password" label="Password" type="password"></v-text-field>
-        <v-text-field v-model="form.avatar" label="Avatar URL"></v-text-field>
+        <v-text-field
+          v-model="form.name"
+          label="Name"
+          :error="!!formFieldErrors.name"
+          :error-messages="formFieldErrors.name"
+        />
+
+        <v-text-field
+          v-model="form.email"
+          label="Email"
+          :error="!!formFieldErrors.email"
+          :error-messages="formFieldErrors.email"
+        />
+
+        <v-text-field
+          v-model="form.password"
+          label="Password"
+          type="password"
+          :error="!!formFieldErrors.password"
+          :error-messages="formFieldErrors.password"
+        />
+
+        <v-text-field
+          v-model="form.avatar"
+          label="Avatar URL"
+          :error="!!formFieldErrors.avatar"
+          :error-messages="formFieldErrors.avatar"
+        />
       </v-card-text>
 
       <v-card-actions>
