@@ -4,7 +4,7 @@ const props = defineProps({
   title: { type: String, default: "Confirm" },
   content: { type: String, default: "Are you sure?" },
   confirmText: { type: String, default: "Confirm" },
-  isSending: { type: Boolean, default: true },
+  isSending: { type: Boolean, default: false },
   color: { type: String, default: "error" },
   discardText: { type: String, default: "Cancel" },
   onConfirm: Function,

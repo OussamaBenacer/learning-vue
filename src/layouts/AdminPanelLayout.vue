@@ -4,10 +4,12 @@ import { ref } from "vue";
 import { onMounted } from "vue";
 import { getProfile } from "@/services/auth";
 import { logoutApi } from "@/services/auth";
+import ConfirmDialog from "@/components/ConfirmDialog.vue";
 
 const router = useRouter();
 const userProfile = ref(null);
 const isLoading = ref(true);
+const logoutDialog = ref(false);
 
 const logout = async () => {
   // create full logic (consider the endpoint exist)
@@ -52,7 +54,7 @@ onMounted(async () => {
                 </p>
                 <p class="text-xs text-slate-400">{{ userProfile?.email }}</p>
               </div>
-              <v-btn variant="text" color="red" @click="logout"> logout </v-btn>
+              <v-btn variant="text" color="red" @click="logoutDialog = true"> logout </v-btn>
             </div>
           </div>
         </v-app-bar>
@@ -72,4 +74,13 @@ onMounted(async () => {
       </v-layout>
     </v-app>
   </v-card>
+
+  <ConfirmDialog
+    v-model="logoutDialog"
+    title="Logout"
+    content="Are you sure you want logout"
+    confirm-text="Logout"
+    @confirm="logout"
+    color="error"
+  />
 </template>
