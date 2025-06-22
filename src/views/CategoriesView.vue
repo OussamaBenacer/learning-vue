@@ -25,6 +25,11 @@ const form = ref({
   image: "",
 });
 
+const formFieldErrors = reactive({
+  name: "",
+  image: "",
+});
+
 // Table headers
 const headers = [
   { title: "Image", key: "image", sortable: false, align: "center" },
@@ -68,9 +73,34 @@ const openDialog = (category = null) => {
 const closeDialog = () => {
   dialog.isOpen = false;
   resetForm();
+
+  formFieldErrors.name = "";
+  formFieldErrors.image = "";
+  dialog.errors = [];
+};
+
+const validateForm = () => {
+  let isValid = true;
+
+  formFieldErrors.name = "";
+  formFieldErrors.image = "";
+
+  if (!form.value.name || form.value.name.trim().length < 3) {
+    formFieldErrors.name = "Name is required and must be at least 3 characters.";
+    isValid = false;
+  }
+
+  const urlRegex = /^(https?:\/\/.*\.(?:png|jpg|jpeg|gif|svg|webp))$/i;
+  if (!form.value.image || !urlRegex.test(form.value.image.trim())) {
+    formFieldErrors.image = "Image URL is required and must be a valid image URL.";
+    isValid = false;
+  }
+
+  return isValid;
 };
 
 const saveCategory = async () => {
+  if (!validateForm()) return;
   dialog.isSending = true;
   dialog.errors = [];
   try {
@@ -159,6 +189,8 @@ onMounted(loadCategories);
       :items="categories"
       :loading="loading"
       loading-text="Loading categories..."
+      hide-default-footer
+      :items-per-page="-1"
     >
       <template v-slot:item.image="{ item }">
         <v-img
@@ -190,8 +222,18 @@ onMounted(loadCategories);
           <li v-for="error in dialog.errors" :key="error">{{ error }}</li>
         </ul>
 
-        <v-text-field v-model="form.name" label="Name"></v-text-field>
-        <v-text-field v-model="form.image" label="Image URL"></v-text-field>
+        <v-text-field
+          v-model="form.name"
+          label="Name"
+          :error="!!formFieldErrors.name"
+          :error-messages="formFieldErrors.name"
+        ></v-text-field>
+        <v-text-field
+          v-model="form.image"
+          label="Image URL"
+          :error="!!formFieldErrors.image"
+          :error-messages="formFieldErrors.image"
+        ></v-text-field>
       </v-card-text>
 
       <v-card-actions>

@@ -147,7 +147,7 @@ onMounted(loadUsers);
 
 <!-- eslint-disable vue/valid-v-slot -->
 <template>
-  <v-card flat>
+  <v-card flat class="pb-20">
     <template v-slot:text>
       <div class="flex justify-between items-center">
         <h1 class="text-2xl font-semibold">User Management</h1>
@@ -161,6 +161,9 @@ onMounted(loadUsers);
       :items="users"
       :loading="loading"
       loading-text="Loading users..."
+      color="primary"
+      :items-per-page="-1"
+      hide-default-footer
     >
       <template v-slot:item.avatar="{ item }">
         <v-img

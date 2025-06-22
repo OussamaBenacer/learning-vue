@@ -238,6 +238,8 @@ onMounted(loadProducts);
       :items="products"
       :loading="loading"
       loading-text="Loading products..."
+      hide-default-footer
+      :items-per-page="-1"
     >
       <template v-slot:item.images="{ item }">
         <v-img
