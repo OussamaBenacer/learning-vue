@@ -1,7 +1,13 @@
 import api from "../api";
 
-export const getProductsApi = () => {
-  return api.get("/products");
+export const getProductsApi = (offset = 0, limit = 5, filterParams = {}) => {
+  return api.get("/products", {
+    params: {
+      offset,
+      limit,
+      ...filterParams,
+    },
+  });
 };
 
 export const addProductApi = (product) => {
@@ -14,8 +20,4 @@ export const updateProductApi = (productId, changes) => {
 
 export const deleteProductApi = (productId) => {
   return api.delete(`/products/${productId}`);
-};
-
-export const getProductsFilterApi = (params) => {
-  return api.get("/products", { params });
 };

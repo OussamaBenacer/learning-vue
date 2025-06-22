@@ -1,18 +1,21 @@
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive } from "vue";
 import {
   getProductsApi,
   addProductApi,
   updateProductApi,
   deleteProductApi,
-  getProductsFilterApi,
 } from "../services/products";
 import { getCategoriesApi } from "@/services/categories";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
+import { watch } from "vue";
+import { computed } from "vue";
+import { onMounted } from "vue";
 
 // State
 const products = ref([]);
 const categories = ref([]);
+const categoryOptions = computed(() => [{ id: "", name: "All" }, ...categories.value]);
 const loading = ref(false);
 
 const filters = reactive({
@@ -22,33 +25,59 @@ const filters = reactive({
   categoryId: "",
 });
 
-const applyFilters = async () => {
+const page = ref(1);
+const limit = 5;
+const offset = computed(() => (page.value - 1) * limit);
+const hasNextPage = computed(() => products.value.length == limit);
+const hasPrevPage = computed(() => page.value !== 1);
+let debounceTimeout = null;
+
+watch(
+  filters,
+  () => {
+    page.value = 1;
+  },
+  { deep: true },
+);
+watch(
+  [offset, filters],
+  ([offsetValue, filtersValue]) => {
+    if (debounceTimeout) clearTimeout(debounceTimeout);
+
+    debounceTimeout = setTimeout(() => {
+      loadProducts(offsetValue, filtersValue);
+    }, 400);
+  },
+  { immediate: true, deep: true },
+);
+
+async function loadProducts(offset, filters) {
   loading.value = true;
   try {
-    const filterParams = {
-      title: filters.title,
-      price_min: filters.price_min,
-      price_max: filters.price_max,
-      categoryId: filters.categoryId,
-    };
-    const { data } = await getProductsFilterApi(filterParams);
-    products.value = data;
+    const res = await getProductsApi(offset, limit, filters);
+    console.log(res);
+    const { data: productsData } = res;
+    products.value = productsData;
   } catch (error) {
-    console.error("Failed to apply filters:", error);
+    console.error("Failed to load products:", error);
   } finally {
     loading.value = false;
   }
-};
+}
 
-const resetFilters = () => {
-  Object.assign(filters, {
-    title: "",
-    price_min: null,
-    price_max: null,
-    categoryId: "",
-  });
-  loadProducts();
-};
+async function loadCategories() {
+  loading.value = true;
+  try {
+    const { data: categoriesData } = await getCategoriesApi();
+    categories.value = categoriesData;
+  } catch (error) {
+    console.error("Failed to load categories", error);
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(loadCategories);
 
 // Dialog & Form
 const dialog = reactive({
@@ -97,27 +126,12 @@ const closeDialog = () => {
 // Table headers
 const headers = [
   { title: "Image", key: "images", sortable: false, align: "center" },
-  { title: "Title", key: "title" },
-  { title: "Category", key: "category.name" },
-  { title: "Price", key: "price" },
-  { title: "Description", key: "description" },
+  { title: "Title", key: "title", sortable: false },
+  { title: "Category", key: "category.name", sortable: false },
+  { title: "Price", key: "price", sortable: false },
+  { title: "Description", key: "description", sortable: false },
   { title: "Actions", key: "actions", sortable: false },
 ];
-
-// Methods
-const loadProducts = async () => {
-  loading.value = true;
-  try {
-    const { data: productsData } = await getProductsApi();
-    products.value = productsData;
-    const { data: categoriesData } = await getCategoriesApi();
-    categories.value = categoriesData;
-  } catch (error) {
-    console.error("Failed to load products:", error);
-  } finally {
-    loading.value = false;
-  }
-};
 
 const saveProduct = async () => {
   dialog.isSending = true;
@@ -152,7 +166,7 @@ const saveProduct = async () => {
       await addProductApi(finalProduct);
     }
 
-    await loadProducts();
+    await loadProducts(offset.value, filters);
     closeDialog();
   } catch (err) {
     console.error("Failed to save product:", err);
@@ -192,7 +206,7 @@ const deleteProduct = async () => {
     try {
       await deleteProductApi(productId);
       closeDeleteDialog();
-      await loadProducts();
+      await loadProducts(offset.value, filters);
     } catch (err) {
       const errorMsgs = err?.response?.data?.message || err?.message;
       deleteDialog.errors = typeof errorMsgs == "string" ? [errorMsgs] : errorMsgs;
@@ -201,8 +215,6 @@ const deleteProduct = async () => {
     }
   }
 };
-
-onMounted(loadProducts);
 </script>
 
 <!-- eslint-disable vue/valid-v-slot -->
@@ -216,19 +228,19 @@ onMounted(loadProducts);
     </template>
 
     <v-card flat class="mb-4 p-4">
+      <!-- filter part  -->
       <div class="flex flex-wrap items-center gap-4">
         <v-text-field v-model="filters.title" label="Title"></v-text-field>
         <v-text-field v-model="filters.price_min" label="Min Price" type="number"></v-text-field>
         <v-text-field v-model="filters.price_max" label="Max Price" type="number"></v-text-field>
         <v-select
           v-model="filters.categoryId"
-          :items="categories"
+          :items="categoryOptions"
           item-title="name"
           item-value="id"
           label="Category"
-        ></v-select>
-        <v-btn color="secondary" size="small" @click="applyFilters">Apply Filters</v-btn>
-        <v-btn variant="plain" size="small" @click="resetFilters">Reset</v-btn>
+        >
+        </v-select>
       </div>
     </v-card>
 
@@ -238,8 +250,8 @@ onMounted(loadProducts);
       :items="products"
       :loading="loading"
       loading-text="Loading products..."
-      hide-default-footer
       :items-per-page="-1"
+      hide-default-footer=""
     >
       <template v-slot:item.images="{ item }">
         <v-img
@@ -256,6 +268,15 @@ onMounted(loadProducts);
         <v-btn size="small" color="error" @click="openDeleteDialog(item.id)"> delete </v-btn>
       </template>
     </v-data-table>
+
+    <!-- pagination control  -->
+    <div class="mb-10 px-4 py-3 flex items-center justify-center gap-4">
+      <div>
+        <v-btn :disabled="!hasPrevPage" @click="page--" class="mr-2"> Prev </v-btn>
+        <v-btn :disabled="!hasNextPage" @click="page++"> Next </v-btn>
+      </div>
+      <p class="font-semibold">Page {{ page }} - products {{ products.length }} : {{ limit }}</p>
+    </div>
   </v-card>
 
   <!-- Add / Edit Dialog -->
