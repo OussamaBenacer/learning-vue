@@ -5,17 +5,29 @@ import { onMounted } from "vue";
 import { getProfile } from "@/services/auth";
 import { logoutApi } from "@/services/auth";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
+import AlertDialog from "@/components/AlertDialog.vue";
+import { useAuthStore } from "@/stores/authStore";
 
 const router = useRouter();
 const userProfile = ref(null);
 const isLoading = ref(true);
 const logoutDialog = ref(false);
+const auth = useAuthStore();
 
 const logout = async () => {
   // create full logic (consider the endpoint exist)
   try {
     await logoutApi();
     router.push("/");
+  } catch (err) {
+    console.err("failed logout: ", err.message);
+  }
+};
+
+const endTheSession = async () => {
+  try {
+    await logout();
+    auth.isSessionEnd = false;
   } catch (err) {
     console.err("failed logout: ", err.message);
   }
@@ -82,5 +94,13 @@ onMounted(async () => {
     confirm-text="Logout"
     @confirm="logout"
     color="error"
+  />
+
+  <AlertDialog
+    v-model="auth.isSessionEnd"
+    color="error"
+    title="End of session"
+    content="Your session has expired, please login again."
+    @accept="endTheSession"
   />
 </template>

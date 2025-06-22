@@ -8,6 +8,7 @@ export const useAuthStore = defineStore(
     const refreshToken = ref("");
 
     const tokensAvailable = computed(() => !!(accessToken.value && refreshToken.value));
+    const isSessionEnd = ref(true);
 
     function setTokens(accessT, refreshT) {
       accessToken.value = accessT;
@@ -18,7 +19,7 @@ export const useAuthStore = defineStore(
       setTokens("", "");
     }
 
-    return { accessToken, refreshToken, tokensAvailable, setTokens, logout };
+    return { accessToken, refreshToken, tokensAvailable, isSessionEnd, setTokens, logout };
   },
   { persist: true },
 );

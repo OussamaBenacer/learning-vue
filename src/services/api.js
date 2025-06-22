@@ -1,7 +1,6 @@
 import axios from "axios";
 import { useAuthStore } from "@/stores/authStore";
 import { refreshApi } from "@/services/auth";
-import router from "@/router";
 
 const api = axios.create({
   baseURL: "https://api.escuelajs.co/api/v1",
@@ -36,11 +35,8 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (err) {
         console.error("Refresh token failed", err);
-        // expired session
-        alert("Your session has expired, please login again.");
         const auth = useAuthStore();
-        auth.logout();
-        router.push("/");
+        auth.isSessionEnd = true;
       }
     }
     return Promise.reject(error);
