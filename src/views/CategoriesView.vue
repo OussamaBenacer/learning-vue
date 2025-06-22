@@ -1,6 +1,12 @@
 <script setup>
 import { ref, reactive, onMounted } from "vue";
-import { getCategories, addCategory, updateCategory, deleteCategory } from "../services/categories";
+import {
+  getCategoriesApi,
+  addCategoryApi,
+  updateCategoryApi,
+  deleteCategoryApi,
+} from "../services/categories";
+import ConfirmDialog from "@/components/ConfirmDialog.vue";
 
 // State
 const categories = ref([]);
@@ -30,7 +36,7 @@ const headers = [
 const loadCategories = async () => {
   loading.value = true;
   try {
-    const { data } = await getCategories();
+    const { data } = await getCategoriesApi();
     categories.value = data;
   } catch (error) {
     console.error("Failed to load categories:", error);
@@ -78,10 +84,10 @@ const saveCategory = async () => {
       }
 
       if (Object.keys(changedFields).length > 0) {
-        await updateCategory(dialog.selectedCategory.id, changedFields);
+        await updateCategoryApi(dialog.selectedCategory.id, changedFields);
       }
     } else {
-      await addCategory({ ...form.value });
+      await addCategoryApi({ ...form.value });
     }
 
     await loadCategories();
@@ -95,19 +101,42 @@ const saveCategory = async () => {
   }
 };
 
-const removeCategory = async (categoryId) => {
-  const confirmDelete = window.confirm("Are you sure you want to delete this category?");
-  if (!confirmDelete) return;
+// Delete product & delete dialog
 
-  loading.value = true;
-  try {
-    await deleteCategory(categoryId);
-    await loadCategories();
-  } catch (err) {
-    console.error("Failed to delete category:", err);
-    alert("Failed to delete category: " + (err?.response?.data?.message || err?.message));
-  } finally {
-    loading.value = false;
+const deleteDialog = reactive({
+  isOpen: false,
+  selectedCategoryId: null,
+  isDeleting: false,
+  errors: [],
+});
+
+const openDeleteDialog = (categoryId) => {
+  deleteDialog.isOpen = true;
+  deleteDialog.selectedCategoryId = categoryId;
+};
+
+const closeDeleteDialog = () => {
+  deleteDialog.isOpen = false;
+  deleteDialog.selectedCategoryId = null;
+  deleteDialog.errors = [];
+};
+
+const deleteCategory = async () => {
+  const categoryId = deleteDialog.selectedCategoryId;
+  if (categoryId) {
+    deleteDialog.isDeleting = true;
+    deleteDialog.errors = [];
+    try {
+      await deleteCategoryApi(categoryId);
+      closeDeleteDialog();
+      await loadCategories();
+    } catch (err) {
+      console.error("Failed to delete category:", err);
+      const errorMsgs = err?.response?.data?.message || err?.message;
+      deleteDialog.errors = typeof errorMsgs == "string" ? [errorMsgs] : errorMsgs;
+    } finally {
+      deleteDialog.isDeleting = false;
+    }
   }
 };
 
@@ -143,7 +172,7 @@ onMounted(loadCategories);
 
       <template #item.actions="{ item }">
         <v-btn size="small" @click="openDialog(item)"> edit </v-btn>
-        <v-btn size="small" color="error" @click="removeCategory(item.id)"> delete </v-btn>
+        <v-btn size="small" color="error" @click="openDeleteDialog(item.id)"> delete </v-btn>
       </template>
     </v-data-table>
   </v-card>
@@ -166,9 +195,21 @@ onMounted(loadCategories);
       </v-card-text>
 
       <v-card-actions>
-        <v-btn color="primary" variant="plain" @click="closeDialog">Cancel</v-btn>
+        <v-btn variant="plain" @click="closeDialog">Cancel</v-btn>
         <v-btn color="primary" @click="saveCategory">Save</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <ConfirmDialog
+    v-model="deleteDialog.isOpen"
+    title="Delete Category"
+    content="Are you sure you want to delete this category?"
+    confirm-text="delete"
+    @confirm="deleteCategory"
+    @discard="closeDeleteDialog"
+    :is-sending="deleteDialog.isDeleting"
+    color="error"
+    :errors="deleteDialog.errors"
+  />
 </template>

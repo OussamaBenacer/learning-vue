@@ -1,17 +1,17 @@
 import api from "../api"; // your existing axios instance
 
-export const getCategories = () => {
+export const getCategoriesApi = () => {
   return api.get("/categories");
 };
 
-export const addCategory = (category) => {
+export const addCategoryApi = (category) => {
   return api.post("/categories", category);
 };
 
-export const updateCategory = (categoryId, changes) => {
+export const updateCategoryApi = (categoryId, changes) => {
   return api.put(`/categories/${categoryId}`, changes);
 };
 
-export const deleteCategory = (categoryId) => {
+export const deleteCategoryApi = (categoryId) => {
   return api.delete(`/categories/${categoryId}`);
 };

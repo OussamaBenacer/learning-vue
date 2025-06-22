@@ -1,14 +1,20 @@
 <script setup>
 import { ref, reactive, onMounted } from "vue";
-import { getProducts, addProduct, updateProduct, deleteProduct, getProductsFilter } from "../services/products";
-import { getCategories } from "@/services/categories";
+import {
+  getProductsApi,
+  addProductApi,
+  updateProductApi,
+  deleteProductApi,
+  getProductsFilterApi,
+} from "../services/products";
+import { getCategoriesApi } from "@/services/categories";
+import ConfirmDialog from "@/components/ConfirmDialog.vue";
 
 // State
 const products = ref([]);
 const categories = ref([]);
 const loading = ref(false);
 
-// Filters (reactive because it’s UI inputs — better!)
 const filters = reactive({
   title: "",
   price_min: null,
@@ -25,7 +31,7 @@ const applyFilters = async () => {
       price_max: filters.price_max,
       categoryId: filters.categoryId,
     };
-    const { data } = await getProductsFilter(filterParams);
+    const { data } = await getProductsFilterApi(filterParams);
     products.value = data;
   } catch (error) {
     console.error("Failed to apply filters:", error);
@@ -102,9 +108,9 @@ const headers = [
 const loadProducts = async () => {
   loading.value = true;
   try {
-    const { data: productsData } = await getProducts();
+    const { data: productsData } = await getProductsApi();
     products.value = productsData;
-    const { data: categoriesData } = await getCategories();
+    const { data: categoriesData } = await getCategoriesApi();
     categories.value = categoriesData;
   } catch (error) {
     console.error("Failed to load products:", error);
@@ -141,9 +147,9 @@ const saveProduct = async () => {
           changedFields[key] = finalProduct[key];
         }
       }
-      await updateProduct(dialog.selectedProduct?.id, changedFields);
+      await updateProductApi(dialog.selectedProduct?.id, changedFields);
     } else {
-      await addProduct(finalProduct);
+      await addProductApi(finalProduct);
     }
 
     await loadProducts();
@@ -157,25 +163,47 @@ const saveProduct = async () => {
   }
 };
 
-const removeProduct = async (productId) => {
-  const confirmDelete = window.confirm("Are you sure you want to delete this product?");
-  if (!confirmDelete) return;
+// Delete product & delete dialog
 
-  loading.value = true;
-  try {
-    await deleteProduct(productId);
-    await loadProducts();
-  } catch (err) {
-    console.error("Failed to delete product:", err);
-    alert("Failed to delete product: " + (err?.response?.data?.message || err?.message));
-  } finally {
-    loading.value = false;
+const deleteDialog = reactive({
+  isOpen: false,
+  selectedProductId: null,
+  isDeleting: false,
+  errors: [],
+});
+
+const openDeleteDialog = (productId) => {
+  deleteDialog.isOpen = true;
+  deleteDialog.selectedProductId = productId;
+};
+
+const closeDeleteDialog = () => {
+  deleteDialog.isOpen = false;
+  deleteDialog.selectedProductId = null;
+  deleteDialog.errors = [];
+};
+
+const deleteProduct = async () => {
+  const productId = deleteDialog.selectedProductId;
+  if (productId) {
+    deleteDialog.isDeleting = true;
+    deleteDialog.errors = [];
+
+    try {
+      await deleteProductApi(productId);
+      closeDeleteDialog();
+      await loadProducts();
+    } catch (err) {
+      const errorMsgs = err?.response?.data?.message || err?.message;
+      deleteDialog.errors = typeof errorMsgs == "string" ? [errorMsgs] : errorMsgs;
+    } finally {
+      deleteDialog.isDeleting = false;
+    }
   }
 };
 
 onMounted(loadProducts);
 </script>
-
 
 <!-- eslint-disable vue/valid-v-slot -->
 <template>
@@ -223,7 +251,7 @@ onMounted(loadProducts);
 
       <template #item.actions="{ item }">
         <v-btn size="small" @click="openDialog(item)"> edit </v-btn>
-        <v-btn size="small" color="error" @click="removeProduct(item.id)"> delete </v-btn>
+        <v-btn size="small" color="error" @click="openDeleteDialog(item.id)"> delete </v-btn>
       </template>
     </v-data-table>
   </v-card>
@@ -256,9 +284,21 @@ onMounted(loadProducts);
       </v-card-text>
 
       <v-card-actions>
-        <v-btn color="primary" variant="plain" @click="closeDialog">Cancel</v-btn>
+        <v-btn variant="plain" @click="closeDialog">Cancel</v-btn>
         <v-btn color="primary" @click="saveProduct">Save</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <ConfirmDialog
+    v-model="deleteDialog.isOpen"
+    title="Delete Product"
+    content="Are you sure you want to delete this product?"
+    confirm-text="delete"
+    @confirm="deleteProduct"
+    @discard="closeDeleteDialog"
+    :is-sending="deleteDialog.isDeleting"
+    color="error"
+    :errors="deleteDialog.errors"
+  />
 </template>

@@ -1,11 +1,13 @@
 <script setup>
 import { ref, reactive, onMounted } from "vue";
-import { getUsers, addUser, updateUser, deleteUser } from "../services/users";
+import { getUsersApi, addUserApi, updateUserApi, deleteUserApi } from "../services/users";
+import ConfirmDialog from "@/components/ConfirmDialog.vue";
 
 // State
 const users = ref([]);
 const loading = ref(false);
 
+// dialog form for add and edit
 const dialog = reactive({
   isOpen: false,
   isSending: false,
@@ -21,6 +23,13 @@ const form = ref({
   avatar: "",
 });
 
+const deleteDialog = reactive({
+  isOpen: false,
+  selectedUserId: null,
+  isDeleting: false,
+  errors: [],
+});
+
 // Table headers
 const headers = [
   { title: "Image", key: "avatar", sortable: false, align: "center" },
@@ -34,7 +43,7 @@ const headers = [
 const loadUsers = async () => {
   loading.value = true;
   try {
-    const { data } = await getUsers();
+    const { data } = await getUsersApi();
     users.value = data;
   } catch (error) {
     console.error("Failed to load users:", error);
@@ -86,10 +95,10 @@ const saveUser = async () => {
       }
 
       if (Object.keys(changedFields).length > 0) {
-        await updateUser(dialog.selectedUser.id, changedFields);
+        await updateUserApi(dialog.selectedUser.id, changedFields);
       }
     } else {
-      await addUser({ ...form.value });
+      await addUserApi({ ...form.value });
     }
 
     await loadUsers();
@@ -103,19 +112,33 @@ const saveUser = async () => {
   }
 };
 
-const removeUser = async (userId) => {
-  const confirmDelete = window.confirm("Are you sure you want to delete this user?");
-  if (!confirmDelete) return;
+const openDeleteDialog = (userId) => {
+  deleteDialog.isOpen = true;
+  deleteDialog.selectedUserId = userId;
+};
 
-  loading.value = true;
-  try {
-    await deleteUser(userId);
-    await loadUsers();
-  } catch (err) {
-    console.error("Failed to delete user:", err);
-    alert("Failed to delete user: " + (err?.response?.data?.message || err?.message));
-  } finally {
-    loading.value = false;
+const closeDeleteDialog = () => {
+  deleteDialog.isOpen = false;
+  deleteDialog.selectedUserId = null;
+  deleteDialog.errors = [];
+};
+
+const deleteUser = async () => {
+  const userId = deleteDialog.selectedUserId;
+  if (userId) {
+    deleteDialog.isDeleting = true;
+    deleteDialog.errors = [];
+
+    try {
+      await deleteUserApi(userId);
+      closeDeleteDialog();
+      await loadUsers();
+    } catch (err) {
+      const errorMsgs = err?.response?.data?.message || err?.message;
+      deleteDialog.errors = typeof errorMsgs == "string" ? [errorMsgs] : errorMsgs;
+    } finally {
+      deleteDialog.isDeleting = false;
+    }
   }
 };
 
@@ -151,7 +174,7 @@ onMounted(loadUsers);
 
       <template #item.actions="{ item }">
         <v-btn size="small" @click="openDialog(item)"> edit </v-btn>
-        <v-btn size="small" color="error" @click="removeUser(item.id)"> delete </v-btn>
+        <v-btn size="small" color="error" @click="openDeleteDialog(item.id)"> delete </v-btn>
       </template>
     </v-data-table>
   </v-card>
@@ -176,9 +199,22 @@ onMounted(loadUsers);
       </v-card-text>
 
       <v-card-actions>
-        <v-btn color="primary" variant="plain" @click="closeDialog">Cancel</v-btn>
+        <v-btn variant="plain" @click="closeDialog">Cancel</v-btn>
         <v-btn color="primary" @click="saveUser">Save</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <!-- Delete Dialog -->
+  <ConfirmDialog
+    v-model="deleteDialog.isOpen"
+    title="Delete User"
+    content="Are you sure you want to delete this user?"
+    confirm-text="delete"
+    @confirm="deleteUser"
+    @discard="closeDeleteDialog"
+    :is-sending="deleteDialog.isDeleting"
+    color="error"
+    :errors="deleteDialog.errors"
+  />
 </template>

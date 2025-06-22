@@ -36,7 +36,7 @@ async function handleSubmit(e) {
   isLoading.value = true;
   try {
     await loginApi(email.value, password.value);
-    router.replace("/admin-panel");
+    router.replace("/admin-panel/users");
   } catch (err) {
     errorMessage.value = err.message;
   } finally {

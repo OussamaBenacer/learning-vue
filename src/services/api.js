@@ -43,7 +43,6 @@ api.interceptors.response.use(
         router.push("/");
       }
     }
-
     return Promise.reject(error);
   },
 );
