@@ -1,35 +1,45 @@
-# vue-test
+# 🛍️ Store Admin Panel
 
-This template should help get you started developing with Vue 3 in Vite.
+This is a modern Admin Panel dashboard built with Vue.js for managing products, users, and categories using the [Platzi Fake API](https://fakeapi.platzi.com/en/rest/products/). It supports full JWT authentication, filtering, pagination, and CRUD operations.
 
-## Recommended IDE Setup
+## 🚀 Features
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+- ✅ JWT Authentication (Login)
+- ✅ Product listing with pagination and filtering by category
+- ✅ CRUD operations on:
+  - Products
+  - Users
+  - Categories
+- ✅ Token persistence and route protection
 
-## Customize configuration
+## 🔐 Demo Login
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+Use these credentials to log in:
 
-## Project Setup
+- **Email**: `john@mail.com`  
+- **Password**: `changeme`
 
-```sh
+---
+
+## 🧰 Tech Stack
+
+- **Vue.js 3**
+- **Vue Router**
+- **Pinia** for state management
+- **Tailwind CSS**
+- **Axios** for API requests
+
+---
+
+## 📦 Install & Run
+
+```bash
+# Clone the repository
+git clone https://github.com/OussamaBenacer/store-admin-panel.git
+cd store-admin-panel
+
+# Install dependencies
 npm install
-```
 
-### Compile and Hot-Reload for Development
-
-```sh
+# Start the development server
 npm run dev
-```
-
-### Compile and Minify for Production
-
-```sh
-npm run build
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
-```
